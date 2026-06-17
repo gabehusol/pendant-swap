@@ -1,0 +1,165 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+  color: #1a1a1a;
+  background: #f5f4f2;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.5px; }
+h2 { font-size: 1rem; font-weight: 600; color: #444; margin-bottom: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+h3 { font-size: .95rem; font-weight: 600; margin-bottom: .5rem; }
+
+.tagline { color: #666; margin: .25rem 0 2rem; font-size: .95rem; }
+
+/* Sections */
+section {
+  background: #fff;
+  border: 1px solid #e2e0db;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Labels & inputs */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  font-size: .875rem;
+  color: #333;
+  font-weight: 500;
+}
+label small { font-weight: 400; color: #888; }
+
+input[type="file"],
+input[type="number"],
+input[type="password"] {
+  padding: .45rem .6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: .9rem;
+  background: #fafafa;
+  width: 100%;
+}
+input:focus, textarea:focus { outline: 2px solid #7c6fcd; border-color: transparent; }
+
+textarea {
+  padding: .45rem .6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: .875rem;
+  background: #fafafa;
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #333;
+}
+
+/* Parameter grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: .75rem;
+}
+
+/* Mode toggle */
+.toggle-row { display: flex; gap: 2rem; }
+.toggle-row label { flex-direction: row; align-items: center; gap: .4rem; font-weight: 400; }
+.toggle-row input[type="radio"] { width: auto; }
+
+/* Checkbox labels */
+.checkbox-label { flex-direction: row; align-items: flex-start; gap: .5rem; font-weight: 400; cursor: pointer; }
+.checkbox-label input[type="checkbox"] { width: auto; margin-top: .15rem; flex-shrink: 0; }
+.checkbox-label small { font-weight: 400; color: #888; }
+.hint { color: #888; font-size: .8rem; }
+
+/* Key notice */
+.notice {
+  margin-top: .6rem;
+  padding: .6rem .75rem;
+  background: #fffbe6;
+  border: 1px solid #f0d060;
+  border-radius: 6px;
+  font-size: .8rem;
+  color: #6b5900;
+  line-height: 1.5;
+}
+
+/* Run button */
+button[type="submit"] {
+  display: block;
+  width: 100%;
+  padding: .8rem;
+  background: #5c4fc7;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: .5rem;
+  transition: background .15s;
+}
+button[type="submit"]:hover { background: #4a3db0; }
+button[type="submit"]:disabled { background: #aaa; cursor: not-allowed; }
+
+/* Status bar */
+#status {
+  margin: 1rem 0;
+  padding: .75rem 1rem;
+  border-radius: 8px;
+  font-size: .9rem;
+  background: #eef3ff;
+  border: 1px solid #c5d4ff;
+  color: #2a4ab0;
+}
+#status.error {
+  background: #fff0f0;
+  border-color: #ffbbbb;
+  color: #a00;
+}
+
+/* Results */
+#results { margin-top: 1.5rem; }
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: .75rem;
+}
+@media (max-width: 600px) { .result-grid { grid-template-columns: 1fr; } }
+
+#resultImg {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  display: block;
+}
+
+#downloadLink {
+  display: inline-block;
+  margin-top: .5rem;
+  font-size: .85rem;
+  color: #5c4fc7;
+}
+
+#qaReport {
+  white-space: pre-wrap;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: .8rem;
+  background: #f7f7f5;
+  border: 1px solid #e0dedd;
+  border-radius: 6px;
+  padding: .75rem;
+  line-height: 1.6;
+}
+
+#attemptCount { margin-top: .5rem; font-size: .85rem; color: #666; }
+
+.hidden { display: none !important; }

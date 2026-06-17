@@ -1,0 +1,25 @@
+# pendant-swap dependencies
+# Pin versions for reproducibility. Verify against your Python 3.10+ env.
+
+Pillow==12.2.0
+numpy==2.4.6
+opencv-python-headless==4.13.0.92
+typer==0.12.5
+fastapi==0.115.4
+uvicorn==0.32.0
+python-dotenv==1.0.1
+python-multipart==0.0.12
+
+# Google Gen AI SDK — model id and call signature MUST be verified against
+# https://ai.google.dev/gemini-api/docs before use. Pinned to a known-good release;
+# bump carefully as the API surface changes between minor versions.
+# Verified against https://ai.google.dev/gemini-api/docs/image-generation on 2026-06-17.
+# Model: gemini-3.1-flash-image (Nano Banana 2).
+# SDK call: client.models.generate_content(model=..., contents=[prompt, pil_img, ...],
+#            config=GenerateContentConfig(response_modalities=['TEXT','IMAGE']))
+# Extract: for part in response.parts: part.as_image()
+# NOTE: 2.9.0 was never released as stable; 2.8.0 is the latest stable release.
+google-genai==2.8.0
+
+# Test runner
+pytest==8.3.3

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pendant-swap</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>pendant-swap</h1>
+  <p class="tagline">Generate, measure, and auto-retry until it meets spec.</p>
+
+  <form id="swapForm">
+    <section>
+      <h2>Images</h2>
+      <label>Model photo <input type="file" id="model" accept="image/*" required></label>
+      <label>Pendant product photo <input type="file" id="pendant" accept="image/*" required></label>
+    </section>
+
+    <section>
+      <h2>Mode</h2>
+      <div class="toggle-row">
+        <label><input type="radio" name="mode" value="composite" checked> Composite <span class="hint">(no AI key needed)</span></label>
+        <label><input type="radio" name="mode" value="generate"> Generate <span class="hint">(Gemini key required)</span></label>
+      </div>
+    </section>
+
+    <section id="keySection" class="hidden">
+      <h2>API Key</h2>
+      <label>
+        Gemini API key
+        <input type="password" id="apiKey" autocomplete="off" spellcheck="false">
+      </label>
+      <p class="notice">Your API key is sent only to your local backend for this request and is never stored or logged.</p>
+      <label>
+        Model
+        <select id="modelId">
+          <option value="gemini-3.1-flash-image">Nano Banana 2 — fast, GA (gemini-3.1-flash-image)</option>
+          <option value="gemini-3-pro-image">Nano Banana Pro — higher quality (gemini-3-pro-image)</option>
+          <option value="gemini-2.5-flash-image">Nano Banana 1 — previous gen (gemini-2.5-flash-image)</option>
+        </select>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="compositeFinish" checked>
+        Composite finish <small>— paste exact pendant pixels at precise size after AI generates (recommended)</small>
+      </label>
+      <label>
+        Extra instructions <small>(appended to every prompt attempt)</small>
+        <textarea id="extraPrompt" rows="4" spellcheck="false"
+          placeholder="e.g. The bail should connect to the chain link at the centre of the necklace. Match the warm side-lighting from the original photo. The pendant wings should be symmetrical."></textarea>
+      </label>
+    </section>
+
+    <section>
+      <h2>Parameters</h2>
+      <div class="grid">
+        <label>Target pendant size (mm) <input type="number" id="targetMm" value="21" step="0.5" min="1"></label>
+        <label>Reference pixel height <input type="number" id="refPx" value="130" min="1"></label>
+        <label>Reference real height (mm) <input type="number" id="refMm" value="13" step="0.5" min="1"></label>
+        <label>Hang point X <small>(blank = auto)</small><input type="number" id="hangX" placeholder="auto"></label>
+        <label>Hang point Y <small>(blank = auto)</small><input type="number" id="hangY" placeholder="auto"></label>
+        <label>Rotate (°) <input type="number" id="rotate" value="0" step="0.5"></label>
+        <label>Top crop px <input type="number" id="topCrop" value="0" min="0"></label>
+        <label id="retriesLabel" class="hidden">Max retries <input type="number" id="maxRetries" value="4" min="0" max="10"></label>
+      </div>
+    </section>
+
+    <button type="submit" id="runBtn">Run</button>
+  </form>
+
+  <div id="status" class="hidden"></div>
+
+  <div id="results" class="hidden">
+    <h2>Result</h2>
+    <div class="result-grid">
+      <div>
+        <h3>Output image</h3>
+        <img id="resultImg" alt="Result">
+        <a id="downloadLink" download="pendant-swap-result.jpg">Download</a>
+      </div>
+      <div>
+        <h3>QA — final composited result</h3>
+        <pre id="finalQa"></pre>
+        <h3 style="margin-top:1rem">QA — AI attempts (pre-composite)</h3>
+        <pre id="qaReport"></pre>
+        <p id="attemptCount"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
