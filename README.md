@@ -4,9 +4,6 @@ Put a jewelry pendant onto a model photo at the correct real-world size, with an
 
 Pendant Swap takes a model photo and a pendant photo, removes the pendant from its background, places it on the model with the right scale, then measures the result and retries until the size is correct. It can also repaint the chain to match the pendant. You bring your own Gemini API key.
 
-> Screenshots: this README points to images in `docs/screenshots/`. Drop your captures there using the file names shown in each `<!-- INSERT ... -->` comment below and they will appear automatically on GitHub.
-
-<!-- INSERT docs/screenshots/01-overview.png : the full app screen right after opening, nothing filled in -->
 ![App overview](docs/screenshots/01-overview.png)
 
 ## Why use this instead of plain Gemini
@@ -19,7 +16,6 @@ Asking Gemini to "add this pendant" in one shot has three problems:
 
 Pendant Swap fixes all three: it hands the model a clean cutout of the exact pendant, biases the size toward your target, then **measures the result in millimeters** and generates several attempts so you can pick the best. An optional size-lock step rescales the pendant to an exact size.
 
-<!-- INSERT docs/screenshots/comparison.png : side by side, plain Gemini result (left) vs Pendant Swap result (right) -->
 ![Plain Gemini vs Pendant Swap](docs/screenshots/comparison.png)
 
 ## Quick start
@@ -63,12 +59,10 @@ Your key is used only for your own requests and is never stored, logged, or comm
 3. **Set options.** Turn on "Replace the chain too" if your pendant photo shows the chain you want. Turn on "Force exact size" only if you need a precise millimeter match.
 4. **Run.** Press Run swap. Generate creates several attempts and measures each one.
 
-<!-- INSERT docs/screenshots/02-generate.png : Generate mode selected, AI settings visible with the key field -->
 ![Generate settings](docs/screenshots/02-generate.png)
 
 5. **Review.** Flip through attempts with the arrows, read the PASS or FAIL measurement on the right, and download your favorite. Turn on "Show QA box" to see exactly what was measured.
 
-<!-- INSERT docs/screenshots/03-results.png : the Results panel with an attempt, the PASS/FAIL badge, and the attempts list -->
 ![Results review](docs/screenshots/03-results.png)
 
 If a result comes out too big, open Calibration, lower the Target size, and run again. The default calibration values (`ref_px` 169, `ref_mm` 21) are tuned for the included sample photos.
