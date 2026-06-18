@@ -1,6 +1,6 @@
 """Scale math: pixels-per-mm calibration and target-size derivation.
 
-Pure arithmetic — no I/O, no images. Fully unit-tested.
+Pure arithmetic - no I/O, no images. Fully unit-tested.
 
 Reference calibration (verified by hand):
   ref_px_height = 130 px  →  ref_mm = 13 mm  →  ppm = 10 px/mm

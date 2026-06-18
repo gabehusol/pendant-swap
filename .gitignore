@@ -81,7 +81,7 @@ dmypy.json
 .ruff_cache/
 
 # ============================================================
-# Sample images (place your own — not committed)
+# Sample images (place your own - not committed)
 # ============================================================
 samples/*.jpg
 samples/*.jpeg

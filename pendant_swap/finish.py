@@ -38,9 +38,9 @@ def remove_watermark(
     Args:
         img: RGB image containing the watermark.
         bbox: (x0, y0, x1, y1) bounding box of the watermark region.
-        method: ``"inpaint"`` (default) — detect bright/grayish pixels,
+        method: ``"inpaint"`` (default) - detect bright/grayish pixels,
             dilate the mask slightly, and inpaint with TELEA.
-            ``"corner_patch"`` — copy a clean patch from another region of
+            ``"corner_patch"`` - copy a clean patch from another region of
             the image (or from ``source_img``) over the watermark bbox with a
             feathered blend.
         source_img: Optional clean source image for corner_patch mode.  If

@@ -3,7 +3,7 @@
 Verified against Google AI docs on 2026-06-17:
   https://ai.google.dev/gemini-api/docs/image-generation
 
-Model:   gemini-3.1-flash-image  (Nano Banana 2 — current GA image model)
+Model:   gemini-3.1-flash-image  (Nano Banana 2 - current GA image model)
 SDK:     google-genai >= 2.0.0  (2.8.0 is latest stable as of 2026-06-17)
 Call:    client.models.generate_content(
              model=MODEL_ID,
@@ -14,7 +14,7 @@ Call:    client.models.generate_content(
          )
 Extract: for part in response.parts: part.as_image()
 
-The api_key is ALWAYS passed per-call — never read from a module-level global,
+The api_key is ALWAYS passed per-call - never read from a module-level global,
 never logged, never stored.  The CLI convenience path (env var fallback) is
 handled in cli.py, not here.
 """
@@ -127,14 +127,14 @@ class GeminiEditor:
 
         # Extract the first image part from the response.
         # part.as_image() returns google.genai.types.Image (image_bytes, mime_type),
-        # not a PIL Image — load the bytes ourselves.
+        # not a PIL Image - load the bytes ourselves.
         for part in response.parts:
             if part.inline_data and part.inline_data.data:
                 import io as _io
                 from PIL import Image as _PIL
                 return _PIL.open(_io.BytesIO(part.inline_data.data)).convert("RGB")
 
-        # No image returned — surface any text the model sent as context.
+        # No image returned - surface any text the model sent as context.
         text_parts = [p.text for p in response.parts if p.text]
         detail = " | ".join(text_parts) if text_parts else "(no detail)"
         raise RuntimeError(
@@ -153,7 +153,7 @@ def _translate_error(exc: Exception) -> RuntimeError:
 
     if any(k in low for k in ("api_key", "api key", "401", "unauthorized", "permission")):
         return RuntimeError(
-            "Authentication failed — check that your Gemini API key is valid "
+            "Authentication failed - check that your Gemini API key is valid "
             "and has access to the image generation model."
         )
     if any(k in low for k in ("quota", "429", "rate limit", "resource exhausted")):
@@ -166,5 +166,5 @@ def _translate_error(exc: Exception) -> RuntimeError:
             "Request blocked by Gemini safety filters.  "
             "Try rephrasing the prompt or using a less restrictive safety setting."
         )
-    # Generic — include message but guarantee the key isn't in it.
+    # Generic - include message but guarantee the key isn't in it.
     return RuntimeError("Gemini API error: %s" % msg)

@@ -82,7 +82,7 @@ def isolate_pendant(img: Image.Image) -> Image.Image:
     background removal the chain survives (it's not background), so the cutout is
     pendant + a tall thin chain. The pendant is a WIDE compact blob; the chain is
     NARROW. We keep the contiguous band of rows whose opaque width is a healthy
-    fraction of the widest row — that band is the pendant — and crop to it.
+    fraction of the widest row - that band is the pendant - and crop to it.
 
     Safe no-op: if the shape is already compact (no thin chain), the band spans
     the whole thing and nothing is cropped.
@@ -105,7 +105,7 @@ def isolate_pendant(img: Image.Image) -> Image.Image:
 
     # The chain sits far below the pendant in density. Separate them at 18% of max:
     # chain rows are ~8-14%, the bail is ~21%+, the wings higher. Scan top-down for
-    # the first row that crosses into pendant density — that's the top of the bail.
+    # the first row that crosses into pendant density - that's the top of the bail.
     pendant = smooth >= 0.18 * max_c
     ys = np.where(pendant)[0]
     if len(ys) == 0:

@@ -31,7 +31,7 @@ from .types import Point, QAReport, SwapParams, SwapResult
 _BASE_PROMPT = """\
 You are editing a product photography image.
 
-The FIRST image is the exact pendant to use — study it carefully.
+The FIRST image is the exact pendant to use - study it carefully.
 The SECOND image is the model photo to edit.
 The THIRD image is a placement guide showing target size and position.
 
@@ -40,14 +40,14 @@ first image. Target real-world size: approximately {target_mm:.0f} mm tall.
 
 Rules:
 - Remove the original pendant completely. It must not appear anywhere in the output.
-- Reproduce the pendant from image 1 EXACTLY — the same shape, colours, materials, \
+- Reproduce the pendant from image 1 EXACTLY - the same shape, colours, materials, \
 textures, gemstones, and details. Do NOT invent, simplify, restyle, or change it.
 - SIZE IS CRITICAL: the pendant must match the size of the faint guide overlay in \
-image 3 — it must NOT be larger. Err on the side of slightly too small rather than \
+image 3 - it must NOT be larger. Err on the side of slightly too small rather than \
 too large. A common mistake is making the pendant too big; do not.
 - Hang the pendant from the chain at the position shown in the guide overlay.
 - CONNECTION POINT: the chain attaches to the pendant's bail (the small connector \
-loop) at the TOP of the pendant. Connect at the top only — do NOT attach the chain \
+loop) at the TOP of the pendant. Connect at the top only - do NOT attach the chain \
 to the centre or body of the pendant, and do NOT let it overlap or cross the pendant.
 - Do NOT add drop shadows, glows, or blur around the pendant.
 {chain_rule}
@@ -62,7 +62,7 @@ _REFINE_PROMPT = """\
 The FIRST image already shows the butterfly pendant on the necklace, but it needs \
 small adjustments. The SECOND image is the exact butterfly pendant for reference.
 
-Keep EVERYTHING in the first image identical — the model, the chain, the \
+Keep EVERYTHING in the first image identical - the model, the chain, the \
 lighting, the background, and the butterfly's tiger-eye appearance and its position \
 on the chain. Apply ONLY these specific changes:
 
@@ -77,15 +77,15 @@ Output the same photo with only those adjustments applied.
 # product (gold beaded chain + butterfly), so we replace the entire necklace.
 _REPLACE_NECKLACE = """\
 - ALSO replace the existing chain to match the chain shown in the reference product \
-image (image 1) — the same style, colour, and links.
+image (image 1) - the same style, colour, and links.
 - The bail is a SMALL loop at the TOP of the pendant. The chain threads through this \
 loop and the pendant hangs cleanly BELOW it. Keep the bail small, neat, and clearly \
-separate — it must NOT be elongated, tube-like, connect to the centre/body of the \
+separate - it must NOT be elongated, tube-like, connect to the centre/body of the \
 pendant, or merge into the pendant.
 - The whole necklace (chain + bail + pendant) must read as one matched set."""
 
 _KEEP_CHAIN = """\
-- Keep the existing chain exactly as it is — do not change it."""
+- Keep the existing chain exactly as it is - do not change it."""
 
 
 def _build_prompt(params: SwapParams, corrections: list[str]) -> str:
@@ -118,9 +118,9 @@ def _prep(params: SwapParams) -> tuple[Image.Image, Image.Image, Image.Image, fl
 
     Returns:
         (model_img, cutout, full_cutout, ppm, target_px, hang_xy)
-        - cutout: pendant only (chain removed) — used for the guide and as the
+        - cutout: pendant only (chain removed) - used for the guide and as the
           pendant-appearance reference.
-        - full_cutout: pendant WITH its chain (background removed) — used as the
+        - full_cutout: pendant WITH its chain (background removed) - used as the
           reference when the user wants the chain replaced too.
     """
     model_img = Image.open(params.model_path).convert("RGB")
@@ -191,7 +191,7 @@ def run_swap(
         model_img, cutout,
         target_px_height=guide_px,
         hang_xy=hang_xy,
-        opacity=0.45,   # subtle hint — too strong and the AI redraws its frame
+        opacity=0.45,   # subtle hint - too strong and the AI redraws its frame
         rotate_deg=params.rotate_deg,
     )
 
@@ -201,7 +201,7 @@ def run_swap(
 
     # Each attempt is INDEPENDENT (fresh generation from cutout+model+guide), not a
     # refinement of the previous one. The guide bias controls size at generation
-    # time, so we no longer need a feedback loop — independent attempts give the
+    # time, so we no longer need a feedback loop - independent attempts give the
     # user real variety to choose from and avoid compounding artifacts (e.g. a
     # stray guide frame getting re-drawn each pass). We generate the full set so
     # there's always a spread to pick the best from.
@@ -210,7 +210,7 @@ def run_swap(
         base = [pendant_ref, model_img, guide]
         prompts_used.append(prompt)
 
-        # api_key flows directly to the editor — never logged here
+        # api_key flows directly to the editor - never logged here
         result_img = editor.edit(
             base_images=base,
             prompt=prompt,
@@ -340,7 +340,7 @@ def _size_lock(
 
     # 2. Inpaint the original pendant out of the base.
     #    Use a filled ellipse over the WHOLE pendant region (not the warm-dark QA
-    #    mask) — otherwise the bright gold border (luma>165, absent from the mask)
+    #    mask) - otherwise the bright gold border (luma>165, absent from the mask)
     #    is left behind as a halo ring. The new pendant covers the centre; the
     #    inpainted skin around it is smooth so a generous fill looks natural.
     #    Margin is generous (40% of the pendant size) so no edge of the original
@@ -408,10 +408,10 @@ def _corrections_from_report(report: QAReport, params: SwapParams) -> list[str]:
     if not report.aspect_ratio.passed:
         a = report.aspect_ratio
         if a.value < a.target:
-            hints.append("The butterfly looks too narrow/tall — widen the wings so it is "
+            hints.append("The butterfly looks too narrow/tall - widen the wings so it is "
                          "slightly wider than it is tall.")
         else:
-            hints.append("The butterfly looks too wide/flat — make it a little taller so the "
+            hints.append("The butterfly looks too wide/flat - make it a little taller so the "
                          "wings are more balanced.")
     if report.chain_color and not report.chain_color.passed:
         hints.append("Ensure the chain stays its original silver colour.")

@@ -1,4 +1,4 @@
-"""Unit tests for pendant_swap.scale — pure arithmetic, no images needed."""
+"""Unit tests for pendant_swap.scale - pure arithmetic, no images needed."""
 
 import pytest
 from pendant_swap.scale import pixels_per_mm, scale_for_image, target_pixels

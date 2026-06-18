@@ -10,7 +10,7 @@ uvicorn==0.32.0
 python-dotenv==1.0.1
 python-multipart==0.0.12
 
-# Google Gen AI SDK — model id and call signature MUST be verified against
+# Google Gen AI SDK - model id and call signature MUST be verified against
 # https://ai.google.dev/gemini-api/docs before use. Pinned to a known-good release;
 # bump carefully as the API surface changes between minor versions.
 # Verified against https://ai.google.dev/gemini-api/docs/image-generation on 2026-06-17.

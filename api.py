@@ -4,7 +4,7 @@ Key handling rules (DESIGN.md §10):
   - API key is read from the X-API-Key request header (preferred) or a form field.
   - It is NEVER stored, logged, or written to disk.
   - It is NEVER returned in any response.
-  - Auth/quota errors from the SDK are returned as 400 JSON — never raw tracebacks.
+  - Auth/quota errors from the SDK are returned as 400 JSON - never raw tracebacks.
 
 Run locally:
   uvicorn api:app --reload

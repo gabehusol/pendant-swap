@@ -1,7 +1,7 @@
 """QA measurement and pass/fail report.
 
 Segmentation strategy: within the caller-supplied search_bbox, look for pixels
-that are warm (R significantly > B) and darker than plain skin/background — this
+that are warm (R significantly > B) and darker than plain skin/background - this
 isolates the pendant (tiger-eye brown + gold border) while rejecting the
 silver chain and skin tone.  A simple density-based row/column scan then derives
 the tightest bounding box around the cluster.
@@ -40,7 +40,7 @@ def measure_pendant(
 
     Args:
         result_img: RGB result image.
-        search_bbox: (x0, y0, x1, y1) in image coords — region to search.
+        search_bbox: (x0, y0, x1, y1) in image coords - region to search.
         return_mask: if True, also return a full-image binary mask (uint8 0/255)
             of the detected pendant. Used by the size-lock post-process.
 
@@ -88,7 +88,7 @@ def measure_pendant(
 
     # Trim the thin chain/bail by ROW WIDTH. The chain and bail are narrow; the
     # pendant wings are wide. Keep the contiguous band of rows whose horizontal
-    # extent is a healthy fraction of the widest row — that band is the pendant.
+    # extent is a healthy fraction of the widest row - that band is the pendant.
     xs_any = blob.any(axis=1)
     row_w = np.zeros(rh)
     rows_with = np.where(xs_any)[0]
@@ -198,7 +198,7 @@ def qa_report(
         target_mm: Expected pendant height in real-world mm.
         ppm: Scale factor in pixels per mm (from scale.pixels_per_mm).
         search_bbox: (x0, y0, x1, y1) region to search for the pendant.
-        aspect_target: Target width/height ratio (default 1.3 — butterfly is wider than tall).
+        aspect_target: Target width/height ratio (default 1.3 - butterfly is wider than tall).
         aspect_tol: Max allowed deviation from aspect_target.
         size_tol: Fractional tolerance on pendant height (e.g. 0.10 = ±10%).
         chain_region: Optional (x0, y0, x1, y1) region to classify chain colour.
@@ -211,18 +211,18 @@ def qa_report(
     bbox = measure_pendant(result_img, search_bbox)
 
     if bbox is None:
-        # Can't measure — all checks fail
+        # Can't measure - all checks fail
         not_found = CheckResult(value=0.0, target=target_mm, passed=False,
-                                label="Pendant height (mm) — NOT FOUND in search region")
+                                label="Pendant height (mm) - NOT FOUND in search region")
         ar_fail = CheckResult(value=0.0, target=1.0, passed=False,
-                              label="Aspect ratio — pendant not found")
+                              label="Aspect ratio - pendant not found")
         chain_check = _classify_chain(result_img, chain_region) if chain_region else None
         return QAReport(
             pendant_height_mm=not_found,
             aspect_ratio=ar_fail,
             chain_color=chain_check,
             passed=False,
-            summary="FAIL — pendant not found in search region",
+            summary="FAIL - pendant not found in search region",
         )
 
     bx0, by0, bx1, by1 = bbox
@@ -240,7 +240,7 @@ def qa_report(
     )
 
     # Aspect ratio (width/height).
-    # Butterfly pendant is wider than tall — default target ~1.3.
+    # Butterfly pendant is wider than tall - default target ~1.3.
     aspect = width_px / height_px if height_px > 0 else 0.0
     aspect_pass = abs(aspect - aspect_target) <= aspect_tol
     aspect_check = CheckResult(
@@ -296,7 +296,7 @@ def _classify_chain(img: Image.Image, region: BBox) -> CheckResult:
     sat = (max(r, g, b) - min(r, g, b)) / (luma + 1e-6)
 
     is_gold = warmth > 15 and sat > 0.15
-    label = "Chain color (gold=pass)" if is_gold else "Chain color (silver — expected gold)"
+    label = "Chain color (gold=pass)" if is_gold else "Chain color (silver - expected gold)"
     return CheckResult(
         value=round(warmth, 1),
         target=15.0,

@@ -3,102 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>pendant-swap</title>
+  <meta name="theme-color" content="#fffef2">
+  <title>Pendant Swap</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>pendant-swap</h1>
-  <p class="tagline">Generate, measure, and auto-retry until it meets spec.</p>
+  <svg class="icon-sprite" aria-hidden="true">
+    <symbol id="icon-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></symbol>
+    <symbol id="icon-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-4.1-4.1a2 2 0 0 0-2.8 0L5 20"/></symbol>
+    <symbol id="icon-spark" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="M9.5 9.5 12 12l2.5-2.5M9.5 14.5 12 12l2.5 2.5"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/></symbol>
+    <symbol id="icon-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 2.5 2.5L21 7l-2.5-2.5"/></symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
+  </svg>
 
-  <form id="swapForm">
-    <section>
-      <h2>Images</h2>
-      <label>Model photo <input type="file" id="model" accept="image/*" required></label>
-      <label>Pendant product photo <input type="file" id="pendant" accept="image/*" required></label>
-    </section>
+  <div class="ambient" aria-hidden="true"></div>
 
-    <section>
-      <h2>Mode</h2>
-      <div class="toggle-row">
-        <label><input type="radio" name="mode" value="composite" checked> Composite <span class="hint">(no AI key needed)</span></label>
-        <label><input type="radio" name="mode" value="generate"> Generate <span class="hint">(Gemini key required)</span></label>
+  <main id="top">
+    <header class="masthead" data-enter>
+      <span class="logo"><svg class="icon"><use href="#icon-gem"></use></svg></span>
+      <div class="masthead-text">
+        <h1>Pendant Swap</h1>
+        <p>Place a pendant on a model photo, set the scale, review every attempt.</p>
       </div>
-    </section>
+    </header>
 
-    <section id="keySection" class="hidden">
-      <h2>API Key</h2>
-      <label>
-        Gemini API key
-        <input type="password" id="apiKey" autocomplete="off" spellcheck="false">
-      </label>
-      <p class="notice">Your API key is sent only to your local backend for this request and is never stored or logged.</p>
-      <label>
-        Model
-        <select id="modelId">
-          <option value="gemini-3.1-flash-image">Nano Banana 2 — fast, GA (gemini-3.1-flash-image)</option>
-          <option value="gemini-3-pro-image">Nano Banana Pro — higher quality (gemini-3-pro-image)</option>
-          <option value="gemini-2.5-flash-image">Nano Banana 1 — previous gen (gemini-2.5-flash-image)</option>
-        </select>
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="compositeFinish">
-        Force exact size <small>— rescale the AI pendant to the precise target mm. Guarantees size but can look pasted; leave OFF if the raw result already looks good.</small>
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="replaceChain">
-        Replace chain too <small>— swap the existing chain for a gold beaded chain matching the reference product</small>
-      </label>
-      <label>
-        Extra instructions <small>(pendant-specific details — appended to every attempt)</small>
-        <textarea id="extraPrompt" rows="4" spellcheck="false"
-          placeholder="Describe anything specific to THIS pendant, e.g. 'tiger-eye butterfly with a vertical diamond bar between the wings' or 'heart pendant, bail at the top point'. The core prompt is pendant-agnostic; put per-pendant notes here."></textarea>
-      </label>
-    </section>
-
-    <section>
-      <h2>Parameters</h2>
-      <div class="grid">
-        <label>Target pendant size (mm) <input type="number" id="targetMm" value="21" step="0.5" min="1"></label>
-        <label>Reference pixel height <input type="number" id="refPx" value="130" min="1"></label>
-        <label>Reference real height (mm) <input type="number" id="refMm" value="13" step="0.5" min="1"></label>
-        <label>Hang point X <small>(blank = auto)</small><input type="number" id="hangX" placeholder="auto"></label>
-        <label>Hang point Y <small>(blank = auto)</small><input type="number" id="hangY" placeholder="auto"></label>
-        <label>Rotate (°) <input type="number" id="rotate" value="0" step="0.5"></label>
-        <label>Top crop px <input type="number" id="topCrop" value="0" min="0"></label>
-        <label id="retriesLabel" class="hidden">Max retries <input type="number" id="maxRetries" value="4" min="0" max="10"></label>
-      </div>
-    </section>
-
-    <button type="submit" id="runBtn">Run</button>
-  </form>
-
-  <div id="status" class="hidden"></div>
-
-  <div id="results" class="hidden">
-    <h2>Result</h2>
-    <div class="result-grid">
-      <div>
-        <div class="carousel-head">
-          <button type="button" id="prevBtn" class="nav-btn">‹</button>
-          <span id="attemptLabel">Attempt 1 / 1</span>
-          <button type="button" id="nextBtn" class="nav-btn">›</button>
+    <form id="swapForm" class="workbench" aria-label="Pendant swap workbench" data-enter>
+      <section class="zone" aria-labelledby="uploadTitle">
+        <h2 id="uploadTitle"><svg class="zone-icon"><use href="#icon-image"></use></svg>Images</h2>
+        <div class="upload-grid">
+          <label class="upload-card" data-tilt>
+            <input type="file" id="model" accept="image/*" required>
+            <svg class="icon"><use href="#icon-image"></use></svg>
+            <span>Model photo</span>
+            <strong id="modelFileName">Choose file</strong>
+          </label>
+          <label class="upload-card" data-tilt>
+            <input type="file" id="pendant" accept="image/*" required>
+            <svg class="icon"><use href="#icon-gem"></use></svg>
+            <span>Pendant photo</span>
+            <strong id="pendantFileName">Choose file</strong>
+          </label>
         </div>
-        <img id="resultImg" alt="Result">
-        <label class="checkbox-label" style="margin-top:.5rem">
-          <input type="checkbox" id="showBox"> Show QA measurement box
-        </label>
-        <a id="downloadLink" download="pendant-swap-result.jpg">Download this attempt</a>
-      </div>
-      <div>
-        <h3>This attempt</h3>
-        <div id="attemptBadge" class="badge"></div>
-        <pre id="attemptQa"></pre>
-        <h3 style="margin-top:1rem">All attempts</h3>
-        <div id="attemptList"></div>
-      </div>
-    </div>
-  </div>
+      </section>
 
-  <script src="app.js"></script>
+      <section class="zone" aria-labelledby="modeTitle">
+        <h2 id="modeTitle"><svg class="zone-icon"><use href="#icon-layers"></use></svg>Mode</h2>
+        <div class="mode-switch" role="radiogroup" aria-label="Rendering mode">
+          <label>
+            <input type="radio" name="mode" value="composite" checked>
+            <svg class="icon"><use href="#icon-layers"></use></svg>
+            <span>Composite</span>
+            <small>Instant, exact pixels, no key</small>
+          </label>
+          <label>
+            <input type="radio" name="mode" value="generate">
+            <svg class="icon"><use href="#icon-spark"></use></svg>
+            <span>Generate</span>
+            <small>AI, measure, auto-retry</small>
+          </label>
+        </div>
+      </section>
+
+      <section id="keySection" class="zone generate-panel hidden" aria-label="Generation settings">
+        <h2><svg class="zone-icon"><use href="#icon-key"></use></svg>AI settings</h2>
+        <div class="ai-grid">
+          <label>
+            <span>Gemini API key</span>
+            <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="Used once, never stored">
+          </label>
+          <label>
+            <span>Model</span>
+            <select id="modelId">
+              <option value="gemini-3.1-flash-image">Nano Banana 2 (fast, GA)</option>
+              <option value="gemini-3-pro-image">Nano Banana Pro (higher quality)</option>
+              <option value="gemini-2.5-flash-image">Nano Banana 1 (previous gen)</option>
+            </select>
+          </label>
+        </div>
+        <p class="notice"><svg class="icon"><use href="#icon-key"></use></svg> Your key only reaches the local backend for this one request.</p>
+        <div class="check-grid">
+          <label class="check-row"><input type="checkbox" id="compositeFinish"><span>Force exact size after generation</span></label>
+          <label class="check-row"><input type="checkbox" id="replaceChain"><span>Replace the chain too</span></label>
+        </div>
+        <label>
+          <span>Extra pendant notes <small>(the core prompt is generic)</small></span>
+          <textarea id="extraPrompt" rows="3" spellcheck="false" placeholder="e.g. tiger-eye butterfly with a diamond bar between the wings"></textarea>
+        </label>
+      </section>
+
+      <details class="advanced">
+        <summary>
+          <svg class="icon"><use href="#icon-sliders"></use></svg>
+          <span>Calibration</span>
+          <small>Tune scale and placement</small>
+          <svg class="chevron icon"><use href="#icon-arrow"></use></svg>
+        </summary>
+        <div class="field-grid">
+          <label><span>Target size (mm)</span><input type="number" id="targetMm" value="21" step="0.5" min="1"></label>
+          <label><span>Reference px</span><input type="number" id="refPx" value="169" min="1"></label>
+          <label><span>Reference mm</span><input type="number" id="refMm" value="21" step="0.5" min="1"></label>
+          <label><span>Hang X</span><input type="number" id="hangX" placeholder="auto"></label>
+          <label><span>Hang Y</span><input type="number" id="hangY" placeholder="auto"></label>
+          <label><span>Rotate</span><input type="number" id="rotate" value="0" step="0.5"></label>
+          <label><span>Top crop</span><input type="number" id="topCrop" value="0" min="0"></label>
+          <label id="retriesLabel" class="hidden"><span>Attempts</span><input type="number" id="maxRetries" value="4" min="0" max="10"></label>
+        </div>
+      </details>
+
+      <button type="submit" id="runBtn" class="run-button" data-press>
+        <svg class="icon run-spark"><use href="#icon-spark"></use></svg>
+        <span class="run-label">Run swap</span>
+        <span class="run-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+
+    <div id="status" class="hidden" role="status" aria-live="polite"></div>
+
+    <section id="results" class="results hidden" data-enter>
+      <h2><svg class="zone-icon"><use href="#icon-sliders"></use></svg>Results</h2>
+      <div class="result-grid">
+        <div class="result-preview">
+          <div class="carousel-head">
+            <button type="button" id="prevBtn" class="nav-btn" aria-label="Previous attempt" data-press><svg class="icon flip"><use href="#icon-arrow"></use></svg></button>
+            <span id="attemptLabel">Attempt 1 / 1</span>
+            <button type="button" id="nextBtn" class="nav-btn" aria-label="Next attempt" data-press><svg class="icon"><use href="#icon-arrow"></use></svg></button>
+          </div>
+          <div class="stage"><img id="resultImg" alt="Generated pendant swap result"></div>
+          <div class="result-actions">
+            <label class="check-row"><input type="checkbox" id="showBox"><span>Show QA box</span></label>
+            <a id="downloadLink" download="pendant-swap-result.jpg" data-press>
+              <svg class="icon"><use href="#icon-download"></use></svg><span>Download</span>
+            </a>
+          </div>
+        </div>
+        <aside class="attempt-panel" aria-label="Attempt quality report">
+          <h3>This attempt</h3>
+          <div id="attemptBadge" class="badge"></div>
+          <pre id="attemptQa" data-lenis-prevent></pre>
+          <h3>All attempts</h3>
+          <div id="attemptList"></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

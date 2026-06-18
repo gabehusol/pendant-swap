@@ -1,11 +1,11 @@
-"""Real-pixel pendant composite — no AI required.
+"""Real-pixel pendant composite - no AI required.
 
 Steps (per spec):
 1. Optionally zero the cutout's alpha above `top_crop_px` (drops product-photo
    chain above the bail so it doesn't ghost over the model's chain).
 2. Rotate by `rotate_deg` (clockwise, expand=True) to deskew toward upright.
 3. Measure the pendant's **wing width** as the maximum alpha-covered span across
-   all rows — this is the widest point of the pendant face.
+   all rows - this is the widest point of the pendant face.
 4. Scale so that wing width == `scale_width_px`.
 5. Alpha-composite onto the model image, centred horizontally at hang_xy.x with
    the top of the (scaled) cutout placed at hang_xy.y.
@@ -69,7 +69,7 @@ def composite_pendant(
     max_row_width = int(row_coverage.max())
 
     if max_row_width == 0:
-        # Cutout is fully transparent — return model unchanged.
+        # Cutout is fully transparent - return model unchanged.
         return model_img.convert("RGB")
 
     # 4. Scale so wing width == scale_width_px.

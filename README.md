@@ -1,238 +1,128 @@
-# pendant-swap
+# Pendant Swap
 
-**It turns "generate and hope" into "generate, measure, and auto-retry until it meets spec."**
+Put a jewelry pendant onto a model photo at the correct real-world size, with an automatic quality check.
 
-A bring-your-own-key toolkit that swaps a jewelry pendant onto a model photo using an AI
-image model, with deterministic prep and a measure-and-retry QA loop wrapped around
-the generation step. Also works with zero AI as a real-pixel composite.
+Pendant Swap takes a model photo and a pendant photo, removes the pendant from its background, places it on the model with the right scale, then measures the result and retries until the size is correct. It can also repaint the chain to match the pendant. You bring your own Gemini API key.
 
----
+> Screenshots: this README points to images in `docs/screenshots/`. Drop your captures there using the file names shown in each `<!-- INSERT ... -->` comment below and they will appear automatically on GitHub.
 
-## Problem
+<!-- INSERT docs/screenshots/01-overview.png : the full app screen right after opening, nothing filled in -->
+![App overview](docs/screenshots/01-overview.png)
 
-Editing a product pendant onto a model photo with an AI image model is unreliable: the
-pendant renders at the wrong size, the framing/zoom drifts, and fine details (like the
-bail) get reinvented. Doing it by hand means generating, eyeballing the result, and
-re-rolling until it looks right — slow and unmeasurable.
+## Why use this instead of plain Gemini
 
-`pendant-swap` makes the process deterministic and verifiable. It computes real-world
-scale, prepares precise inputs, calls the image model with your own API key, then
-**measures the output against spec and automatically retries** if it fails.
+Asking Gemini to "add this pendant" in one shot has three problems:
 
----
+1. **Wrong size.** Gemini draws the pendant at whatever size it likes, usually far too large.
+2. **Wrong detail.** It reinvents the stone pattern, the metal trim, and the bail.
+3. **No quality check.** You get one image with no measurement and no second try.
 
-## Architecture
+Pendant Swap fixes all three: it hands the model a clean cutout of the exact pendant, biases the size toward your target, then **measures the result in millimeters** and generates several attempts so you can pick the best. An optional size-lock step rescales the pendant to an exact size.
 
-```
-            +------------------+
-            |  Minimal Web UI  |   static HTML/JS, posts to /swap
-            +---------+--------+
-                      |
-            +---------v--------+
-            |  FastAPI backend |   thin wrapper; passes key through, never stores
-            +---------+--------+
-                      |
-            +---------v--------+
-            |   Core engine    |   pure Python library (no web, no globals)
-            |  prep/composite/ |
-            |  generate/qa/    |
-            |  finish          |
-            +------------------+
-                      ^
-            +---------+--------+
-            |       CLI        |   calls the same engine functions
-            +------------------+
-```
+<!-- INSERT docs/screenshots/comparison.png : side by side, plain Gemini result (left) vs Pendant Swap result (right) -->
+![Plain Gemini vs Pendant Swap](docs/screenshots/comparison.png)
 
-The **engine** is pure functions with no global state. The **CLI** and **FastAPI** are
-thin adapters over the engine. The **generate** step is behind a protocol so backends
-are swappable (Gemini default; fal/OpenAI later).
-
----
-
-## Install
+## Quick start
 
 ```bash
 python -m venv .venv
 # Windows:
 .venv\Scripts\activate
-# macOS/Linux:
+# macOS or Linux:
 source .venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
-Requires Python 3.10+.
-
-### API key setup (bring-your-own)
-
-`pendant-swap` never stores, logs, or commits your API key. You supply it:
-
-- **CLI**: pass `--api-key sk-...` or set `GEMINI_API_KEY` in your environment.
-- **UI**: enter it in the password field — sent only to your local backend, never persisted.
-- **API**: pass it in the `X-API-Key` request header.
-
-Copy `.env.example` to `.env` and fill in your key for CLI convenience:
+Requires Python 3.10 or newer. Start the local server:
 
 ```bash
-cp .env.example .env
-# Edit .env: GEMINI_API_KEY=your-key-here
+python -m uvicorn api:app --reload
 ```
 
-`.env` is gitignored. Never commit it.
-
----
-
-## Workflow — composite mode (no AI key required)
-
-The composite path takes the real pendant pixels, removes the background, scales and
-places them onto the model photo with pixel-perfect placement. No generation, no
-hallucinated details.
-
-```bash
-# 1. Prepare: remove background, compute scale, build guide overlay
-pendant-swap prep \
-  --model samples/model.jpg \
-  --pendant samples/pendant.jpg \
-  --target-mm 21 --ref-px 130 --ref-mm 13 \
-  --out output/
-
-# 2. Composite: real-pixel swap
-pendant-swap composite \
-  --model samples/model.jpg \
-  --pendant samples/pendant.jpg \
-  --target-mm 21 --ref-px 130 --ref-mm 13 \
-  --x 512 --y 320 --rotate 3 --top-crop 40 \
-  --out output/
-```
-
----
-
-## Workflow — AI generate loop
-
-The generate path sends the model photo, cutout, and placement guide to a Gemini image
-model with a detailed prompt, then measures the result and retries with corrective hints
-until QA passes or the retry cap is hit.
-
-```bash
-pendant-swap generate \
-  --model samples/model.jpg \
-  --pendant samples/pendant.jpg \
-  --target-mm 21 --ref-px 130 --ref-mm 13 \
-  --max-retries 4 \
-  --api-key $GEMINI_API_KEY \
-  --out output/
-```
-
----
-
-## Workflow — QA on an existing result
-
-```bash
-pendant-swap qa \
-  --result output/result.jpg \
-  --target-mm 21 --ref-px 130 --ref-mm 13 \
-  --search 400 200 650 500 \
-  --annotate
-```
-
-Example output:
+When you see `Application startup complete`, open the app in your browser:
 
 ```
-[PASS] Pendant height (mm): 20.800 (target 21.000)
-[PASS] Aspect ratio:         0.920 (target ≤0.200 deviation from square)
-[PASS] Chain color:          gold (hue 38, sat 0.62)
-Overall: PASSED (3/3 checks)
-Annotated result saved: output/result_qa.jpg
+http://127.0.0.1:8000/web/index.html
 ```
 
-*(This example will be filled in with real numbers after running on sample images.)*
+### Get a Gemini API key
 
----
+The generate step uses Google's Gemini image model. Create a key in Google AI Studio and paste it into the app. Your key is used only for your own requests and is never stored, logged, or committed.
 
-## QA report fields
+## Using the app
+
+1. **Add two images.** Pick a model photo and a pendant photo. Each box highlights once a file is chosen.
+2. **Choose Generate mode.** Composite is an instant rough placement with no AI. Generate uses the AI and runs the measure-and-retry loop. Paste your API key in the AI settings area that appears.
+3. **Set options.** Turn on "Replace the chain too" if your pendant photo shows the chain you want. Turn on "Force exact size" only if you need a precise millimeter match.
+4. **Run.** Press Run swap. Generate creates several attempts and measures each one.
+
+<!-- INSERT docs/screenshots/02-generate.png : Generate mode selected, AI settings visible with the key field -->
+![Generate settings](docs/screenshots/02-generate.png)
+
+5. **Review.** Flip through attempts with the arrows, read the PASS or FAIL measurement on the right, and download your favorite. Turn on "Show QA box" to see exactly what was measured.
+
+<!-- INSERT docs/screenshots/03-results.png : the Results panel with an attempt, the PASS/FAIL badge, and the attempts list -->
+![Results review](docs/screenshots/03-results.png)
+
+If a result comes out too big, open Calibration, lower the Target size, and run again. The default calibration values (`ref_px` 169, `ref_mm` 21) are tuned for the included sample photos.
+
+## How it works
+
+```
+            +------------------+
+            |     Web UI       |   static HTML/JS, posts to /swap
+            +---------+--------+
+                      |
+            +---------v--------+
+            |  FastAPI backend |   thin wrapper; passes the key through, never stores it
+            +---------+--------+
+                      |
+            +---------v--------+
+            |   Core engine    |   pure Python (prep, generate, qa, size-lock)
+            +------------------+
+                      ^
+            +---------+--------+
+            |       CLI        |   same engine, command line
+            +------------------+
+```
+
+The pipeline wraps the unreliable AI step in deterministic bookends:
+
+1. **Prep.** Remove the pendant background, isolate the pendant from any attached chain, and build a faint size guide on the model photo.
+2. **Generate.** Send the cutout, the model photo, and the guide to Gemini. The guide is drawn smaller than the target because the model tends to oversize the pendant, which biases the result toward the right size. Several independent attempts are produced.
+3. **Measure.** Segment the pendant in each result and report its height in millimeters and its shape ratio, with a PASS or FAIL.
+4. **Size-lock (optional).** Rescale the AI's own rendered pendant to the exact target size and report the locked measurement.
+
+## Command line
+
+The same engine is available from the terminal:
+
+```
+pendant-swap generate  --model M --pendant P --target-mm 21 --ref-px 169 --ref-mm 21 [--max-retries 4] --api-key KEY --out DIR
+pendant-swap composite --model M --pendant P --target-mm 21 --ref-px 169 --ref-mm 21 [--x --y --rotate] --out DIR
+pendant-swap qa        --result R --target-mm 21 --ref-px 169 --ref-mm 21 --search X0 Y0 X1 Y1 [--annotate]
+pendant-swap finish    --image I [--remove-watermark X0 Y0 X1 Y1] [--crop T R B L] [--upscale 2] --out DIR
+```
+
+Run `pendant-swap <command> --help` for the full option list. The API key for the CLI can also come from `GEMINI_API_KEY` in your environment or a `.env` file (copy `.env.example` to `.env`). `.env` is gitignored.
+
+## Quality report
 
 | Check | What it measures | Pass condition |
 |---|---|---|
-| `pendant_height_mm` | Segmented pendant height in mm | Within ±10% of `target_mm` |
-| `aspect_ratio` | width/height of segmented bbox | Within ±0.20 of 1.0 (near-square) |
-| `chain_color` | Mean hue/saturation of chain region | Warm gold hue (if chain_region supplied) |
-
----
-
-## CLI reference
-
-```
-pendant-swap prep      --model M --pendant P --target-mm 21 --ref-px 130 --ref-mm 13 [--x --y --tolerance] --out DIR
-pendant-swap composite --model M --pendant P --target-mm 21 --ref-px 130 --ref-mm 13 [--x --y --rotate --top-crop] --out DIR
-pendant-swap generate  --model M --pendant P --target-mm 21 --ref-px 130 --ref-mm 13 [--max-retries 4] --out DIR
-pendant-swap qa        --result R --target-mm 21 --ref-px 130 --ref-mm 13 --search X0 Y0 X1 Y1 [--annotate]
-pendant-swap finish    --image I [--remove-watermark X0 Y0 X1 Y1] [--method inpaint|corner_patch] [--crop T R B L] [--upscale 2] --out DIR
-```
-
-Run `pendant-swap <command> --help` for full option list.
-
----
-
-## API server
-
-```bash
-uvicorn api:app --reload
-# OpenAPI docs at http://localhost:8000/docs
-```
-
-Endpoints: `POST /swap`, `POST /composite`, `POST /prep`, `POST /qa`, `POST /finish`.
-
----
-
-## Default values
-
-These defaults are calibrated from a real reference pendant:
-
-| Parameter | Default | Meaning |
-|---|---|---|
-| `ref_px_height` | 130 | Reference pendant height in pixels |
-| `ref_mm` | 13.0 | Reference pendant real-world height (mm) |
-| `target_mm` | 21.0 | Target pendant real-world height (mm) |
-| Derived `ppm` | 10.0 px/mm | Scale factor |
-| Derived `target_px` | 210 px | Target pendant pixel height |
-| `max_retries` | 4 | Generate-retry cap |
-| `size_tol` | 0.10 | ±10% size tolerance |
-| `aspect_tol` | 0.20 | ±0.20 aspect ratio tolerance |
-
----
-
-## Design notes
-
-The generation step is the unreliable middle of the pipeline. AI image models render
-the pendant at the wrong size, drift on framing, and reinvent fine details like the
-bail. This tool wraps that unreliable step in deterministic bookends: a pixel-precise
-prep stage (scale math, background removal, placement guide) and a measuring QA gate
-that rejects bad results and feeds corrective hints back into the next attempt.
-
-The composite path needs no AI at all — it pastes the real pendant pixels with
-transparent alpha. This is the highest-fidelity option and the right starting point
-before introducing generation.
-
-The `upscale` utility (Lanczos) is a stopgap. A dedicated upscaler model (e.g. Real-ESRGAN)
-will produce noticeably better results and is the recommended upgrade for production use.
-
----
-
-## Roadmap / future work
-
-- **Auto-detect hang point** — detect chain endpoint / pendant anchor from the model photo
-- **Batch / catalog processing** — accept a product feed CSV, produce swapped images in bulk
-- **Additional jewelry types** — rings and earrings with their own QA metrics (finger clearance, lobe position)
-- **Additional generation backends** — fal.ai, OpenAI image API, pluggable via the `ImageEditor` protocol
-- **Real upscaler** — integrate Real-ESRGAN or similar instead of Lanczos
-- **Polished UI** — a proper React/Next.js UI; the `web/` page is functional-only
-
----
+| Pendant height (mm) | Segmented pendant height converted to millimeters | Within 20% of the target |
+| Aspect ratio | Width divided by height of the segmented pendant | Within 0.30 of the target shape |
 
 ## Security
 
-- No API key is ever hardcoded, stored, logged, or committed.
-- The server never writes keys to disk or returns them in responses.
+- The API key is never hardcoded, stored, logged, or committed.
+- The server never writes the key to disk or returns it in a response.
 - `.env` and `samples/` are gitignored.
-- Auth failures from the generation API surface as clear user-facing errors, never raw tracebacks.
+- Generation errors surface as clear messages, never raw tracebacks.
+
+## Tests
+
+```bash
+python -m pytest -q
+```
