@@ -71,7 +71,7 @@
         <h2><svg class="zone-icon"><use href="#icon-key"></use></svg>AI settings</h2>
         <div class="ai-grid">
           <label>
-            <span>Gemini API key</span>
+            <span>Gemini API key <a class="get-key" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get a free key</a></span>
             <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="Used once, never stored">
           </label>
           <label>
@@ -83,7 +83,7 @@
             </select>
           </label>
         </div>
-        <p class="notice"><svg class="icon"><use href="#icon-key"></use></svg> Your key only reaches the local backend for this one request.</p>
+        <p class="notice"><svg class="icon"><use href="#icon-key"></use></svg> No key yet? Open Google AI Studio, sign in, click Create API key, and paste it here. It only reaches the local backend for this one request.</p>
         <div class="check-grid">
           <label class="check-row"><input type="checkbox" id="compositeFinish"><span>Force exact size after generation</span></label>
           <label class="check-row"><input type="checkbox" id="replaceChain"><span>Replace the chain too</span></label>

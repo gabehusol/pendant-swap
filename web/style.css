@@ -145,6 +145,13 @@ main {
 /* ---------- Fields (lighter, airier) ---------- */
 label { display: grid; gap: 6px; font-size: 0.89rem; font-weight: 500; }
 label > span small { color: var(--muted); font-weight: 400; }
+.get-key {
+  margin-left: 8px; padding: 2px 9px; border-radius: 999px;
+  background: rgba(0, 129, 167, 0.1); color: var(--cerulean);
+  font-size: 0.74rem; font-weight: 600; vertical-align: middle;
+  transition: background 0.16s ease;
+}
+.get-key:hover { background: rgba(0, 129, 167, 0.18); }
 input[type="number"], input[type="password"], select, textarea {
   width: 100%; min-height: 44px; padding: 10px 13px;
   border: 1px solid var(--line); border-radius: var(--radius-sm);

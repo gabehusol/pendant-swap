@@ -48,7 +48,13 @@ http://127.0.0.1:8000/web/index.html
 
 ### Get a Gemini API key
 
-The generate step uses Google's Gemini image model. Create a key in Google AI Studio and paste it into the app. Your key is used only for your own requests and is never stored, logged, or committed.
+The generate step uses Google's Gemini image model. To get a free key:
+
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey) and sign in with a Google account.
+2. Click **Create API key**.
+3. Copy the key and paste it into the API key box in the app (or set `GEMINI_API_KEY` for the CLI).
+
+Your key is used only for your own requests and is never stored, logged, or committed.
 
 ## Using the app
 

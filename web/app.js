@@ -37,19 +37,31 @@ function smoothScrollTo(el) {
   else el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 }
 
+// Motion helpers. IMPORTANT: use independent transform props (y / scale), never
+// raw "transform" strings, and never let visible content rest at opacity 0.
 const EASE = [0.16, 1, 0.3, 1];
-function fxFade(el, fromTransform = "translateY(8px)") {
-  if (!MO || reduce || !el) return;
-  MO.animate(el, { opacity: [0, 1], transform: [fromTransform, "none"] }, { duration: 0.4, easing: EASE });
+function fxFade(el) {
+  if (!el) return;
+  if (!MO || reduce) { el.style.opacity = "1"; return; }
+  try { MO.animate(el, { opacity: [0, 1], y: [12, 0] }, { duration: 0.4, easing: EASE }); }
+  catch (e) { el.style.opacity = "1"; }
+}
+function fxImage(el) {
+  // The result image must never end (or get stuck) invisible: fade from 40%, not 0.
+  if (!el) return;
+  if (!MO || reduce) { el.style.opacity = "1"; return; }
+  try { MO.animate(el, { opacity: [0.4, 1], scale: [1.015, 1] }, { duration: 0.32, easing: EASE }); }
+  catch (e) { el.style.opacity = "1"; }
 }
 function fxPop(el) {
-  if (!MO || reduce || !el) return;
-  MO.animate(el, { transform: ["scale(0.82)", "scale(1)"] }, { duration: 0.36, easing: [0.34, 1.56, 0.64, 1] });
+  if (!el || !MO || reduce) return;
+  try { MO.animate(el, { scale: [0.82, 1] }, { duration: 0.36, easing: [0.34, 1.56, 0.64, 1] }); } catch (e) {}
 }
 function fxStagger(els) {
-  if (!MO || reduce || !els.length) return;
-  MO.animate(els, { opacity: [0, 1], transform: ["translateY(10px)", "none"] },
-    { duration: 0.4, delay: MO.stagger(0.045), easing: EASE });
+  if (!els.length) return;
+  if (!MO || reduce) { els.forEach((el) => (el.style.opacity = "1")); return; }
+  try { MO.animate(els, { opacity: [0, 1], y: [10, 0] }, { duration: 0.4, delay: MO.stagger(0.045), easing: EASE }); }
+  catch (e) { els.forEach((el) => (el.style.opacity = "1")); }
 }
 
 // --- Element refs ---
@@ -94,7 +106,7 @@ function renderCurrentImage() {
   resultImg.src = "data:image/jpeg;base64," + (useBox ? a.annotated : a.image);
   downloadLink.href = "data:image/jpeg;base64," + a.image;
   downloadLink.download = "pendant-attempt-" + (current + 1) + ".jpg";
-  fxFade(resultImg, "scale(1.03)");
+  fxImage(resultImg);
 }
 
 function renderAttemptList() {
@@ -192,7 +204,7 @@ async function runSwap() {
     resultsEl.classList.remove("hidden");
     resultsEl.classList.add("is-in");
     showStatus("Done." + sizeNote);
-    fxFade(resultsEl, "translateY(16px)");
+    fxFade(resultsEl);
     smoothScrollTo(resultsEl);
   } catch (err) {
     showStatus("Network error: " + err.message, "error");
@@ -210,7 +222,7 @@ function showStatus(msg, type) {
   statusEl.textContent = msg;
   statusEl.className = type === "error" ? "error" : "";
   statusEl.classList.remove("hidden");
-  fxFade(statusEl, "translateY(6px)");
+  fxFade(statusEl);
 }
 
 // --- Settings persistence (everything except API key + files) ---
@@ -262,12 +274,14 @@ function bindFileName(inputId, labelId) {
 // --- Entrance reveal: Motion spring when available, CSS fallback. Never leaves content hidden. ---
 function revealEl(el, idx) {
   if (MO && !reduce) {
-    MO.animate(el, { opacity: [0, 1], transform: ["translateY(20px)", "none"] },
-      { type: "spring", stiffness: 88, damping: 18, delay: Math.min(idx * 0.07, 0.24) });
-  } else {
-    el.style.transitionDelay = Math.min(idx * 80, 200) + "ms";
-    el.classList.add("is-in");
+    try {
+      MO.animate(el, { opacity: [0, 1], y: [20, 0] },
+        { type: "spring", stiffness: 88, damping: 18, delay: Math.min(idx * 0.07, 0.24) });
+      return;
+    } catch (e) { /* fall through to CSS */ }
   }
+  el.style.transitionDelay = Math.min(idx * 80, 200) + "ms";
+  el.classList.add("is-in");
 }
 
 async function initReveal() {
