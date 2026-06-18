@@ -160,6 +160,65 @@ button[type="submit"]:disabled { background: #aaa; cursor: not-allowed; }
   line-height: 1.6;
 }
 
-#attemptCount { margin-top: .5rem; font-size: .85rem; color: #666; }
+/* Carousel */
+.carousel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .5rem;
+  font-size: .9rem;
+  font-weight: 600;
+}
+.nav-btn {
+  width: 36px; height: 36px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #5c4fc7;
+}
+.nav-btn:hover { background: #f0eefb; }
+
+.badge {
+  display: inline-block;
+  padding: .35rem .7rem;
+  border-radius: 6px;
+  font-size: .85rem;
+  font-weight: 600;
+  margin-bottom: .6rem;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+.badge.pass { background: #e3f7e3; color: #1a7a1a; border: 1px solid #9ed99e; }
+.badge.fail { background: #fdeaea; color: #b02020; border: 1px solid #f0a0a0; }
+
+#attemptQa {
+  white-space: pre-wrap;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: .8rem;
+  background: #f7f7f5;
+  border: 1px solid #e0dedd;
+  border-radius: 6px;
+  padding: .75rem;
+  line-height: 1.6;
+}
+
+#attemptList { display: flex; flex-direction: column; gap: .3rem; }
+.attempt-row {
+  text-align: left;
+  padding: .45rem .6rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: .78rem;
+  cursor: pointer;
+  border-left-width: 4px;
+}
+.attempt-row.pass { border-left-color: #4caf50; }
+.attempt-row.fail { border-left-color: #e57373; }
+.attempt-row.active { background: #f0eefb; font-weight: 600; }
+.attempt-row:hover { background: #f0eefb; }
 
 .hidden { display: none !important; }

@@ -75,6 +75,50 @@ def remove_background(img: Image.Image, tolerance: int = 28) -> Image.Image:
     return Image.fromarray(result, "RGBA")
 
 
+def isolate_pendant(img: Image.Image) -> Image.Image:
+    """Crop an RGBA cutout down to just the pendant, discarding an attached chain.
+
+    Product photos often show the pendant hanging from a long chain. After
+    background removal the chain survives (it's not background), so the cutout is
+    pendant + a tall thin chain. The pendant is a WIDE compact blob; the chain is
+    NARROW. We keep the contiguous band of rows whose opaque width is a healthy
+    fraction of the widest row — that band is the pendant — and crop to it.
+
+    Safe no-op: if the shape is already compact (no thin chain), the band spans
+    the whole thing and nothing is cropped.
+    """
+    rgba = img.convert("RGBA")
+    a = np.array(rgba)[:, :, 3]
+    h, w = a.shape
+    opaque = a > 128
+
+    # Use opaque pixel COUNT per row, not width: the chain is thin (few pixels
+    # even where its two strands splay wide), the pendant (wings + bail) is solid.
+    row_count = opaque.sum(axis=1).astype(float)
+    if row_count.max() <= 0:
+        return rgba
+
+    # Smooth so the bail's open loop (a low-count dip) doesn't fool the scan.
+    k = max(1, int(h * 0.02))
+    smooth = np.convolve(row_count, np.ones(k) / k, mode="same")
+    max_c = smooth.max()
+
+    # The chain sits far below the pendant in density. Separate them at 18% of max:
+    # chain rows are ~8-14%, the bail is ~21%+, the wings higher. Scan top-down for
+    # the first row that crosses into pendant density — that's the top of the bail.
+    pendant = smooth >= 0.18 * max_c
+    ys = np.where(pendant)[0]
+    if len(ys) == 0:
+        return rgba
+    y0 = int(ys.min())                       # top of bail (chain excluded)
+    # Lower wing tips taper thin; keep them with a more lenient bottom threshold.
+    lenient = smooth >= 0.12 * max_c
+    y1 = int(np.where(lenient)[0].max())
+
+    band = rgba.crop((0, y0, w, y1 + 1))
+    return trim_to_alpha(band)               # tighten to the pendant's x-extent
+
+
 def trim_to_alpha(img: Image.Image) -> Image.Image:
     """Crop the image to the bounding box of non-transparent pixels.
 

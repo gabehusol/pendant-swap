@@ -137,7 +137,8 @@ async def swap(
     mode:        str        = Form("composite"),
     model_id:    str        = Form("gemini-3.1-flash-image"),
     extra_prompt: str       = Form(""),
-    composite_finish: bool  = Form(True),
+    composite_finish: str   = Form("false"),
+    replace_chain: str      = Form("false"),
     api_key_form: Optional[str] = Form(None, alias="api_key"),
     x_api_key:   Optional[str] = Header(None),
 ) -> JSONResponse:
@@ -190,7 +191,8 @@ async def swap(
         api_key=key,
         model_id=model_id,
         extra_prompt=extra_prompt,
-        composite_finish=composite_finish,
+        composite_finish=composite_finish.lower() not in ("false", "0", "no", "off"),
+        replace_chain=replace_chain.lower() in ("true", "1", "yes", "on"),
     )
     # loop.py uses file paths for prep; for the API we write to temp files
     import tempfile, pathlib
@@ -209,12 +211,27 @@ async def swap(
         except (RuntimeError, Exception) as exc:
             raise HTTPException(400, str(exc))
 
-    qa_summaries = [r.summary for r in swap_result.qa_reports]
+    # Build a per-attempt list: clean image, annotated (QA box) image, summary, score, pass.
+    attempts = []
+    for i, rep in enumerate(swap_result.qa_reports):
+        clean = swap_result.attempt_images[i] if i < len(swap_result.attempt_images) else None
+        attempts.append({
+            "index": i,
+            "image": _img_to_b64(clean) if clean is not None else None,
+            "annotated": _img_to_b64(rep.annotated_image) if rep.annotated_image else None,
+            "summary": rep.summary,
+            "passed": rep.passed,
+            "score": swap_result.attempt_scores[i] if i < len(swap_result.attempt_scores) else None,
+            "height_mm": round(rep.pendant_height_mm.value, 2),
+            "aspect": round(rep.aspect_ratio.value, 3),
+        })
+
     payload: dict = {
         "mode": "generate",
         "result_image": _img_to_b64(swap_result.final_image),
         "chosen_attempt": swap_result.chosen_attempt,
-        "qa_reports": qa_summaries,
+        "qa_reports": [r.summary for r in swap_result.qa_reports],
+        "attempts": attempts,
         "prompts_used": swap_result.prompts_used,
         "ppm": round(ppm, 3),
     }

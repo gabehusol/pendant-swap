@@ -110,7 +110,7 @@ class GeminiEditor:
         active_model = model_id if model_id else self.MODEL_ID
         client = genai.Client(api_key=api_key)
 
-        # Build contents: text prompt followed by all reference images.
+        # Caller controls image order to match the prompt's references.
         contents: list = [prompt] + list(base_images)
 
         try:
@@ -119,6 +119,7 @@ class GeminiEditor:
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_modalities=["TEXT", "IMAGE"],
+                    temperature=1.0,   # vary outputs so retries actually differ
                 ),
             )
         except Exception as exc:

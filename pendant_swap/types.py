@@ -44,6 +44,8 @@ class SwapResult:
     prompts_used: list[str]
     final_qa: Optional[QAReport] = None   # QA run on final composited image
     gen_image_size: Optional[tuple] = None  # (w, h) of Gemini output
+    attempt_images: list = field(default_factory=list)   # raw PIL image per attempt
+    attempt_scores: list = field(default_factory=list)    # numeric score per attempt
 
 
 @dataclass
@@ -63,4 +65,6 @@ class SwapParams:
     tolerance: int = 28
     model_id: str = "gemini-3.1-flash-image"
     extra_prompt: str = ""
-    composite_finish: bool = True
+    composite_finish: bool = False  # size-lock: force exact size (can look pasted)
+    replace_chain: bool = False      # also replace the chain to match the reference
+    guide_size_bias: float = 0.52    # render guide smaller; AI overshoots, so this lands near target (tuned: 0.72->25mm, 0.52->~21mm)

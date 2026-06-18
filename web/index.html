@@ -41,13 +41,17 @@
         </select>
       </label>
       <label class="checkbox-label">
-        <input type="checkbox" id="compositeFinish" checked>
-        Composite finish <small>— paste exact pendant pixels at precise size after AI generates (recommended)</small>
+        <input type="checkbox" id="compositeFinish">
+        Force exact size <small>— rescale the AI pendant to the precise target mm. Guarantees size but can look pasted; leave OFF if the raw result already looks good.</small>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="replaceChain">
+        Replace chain too <small>— swap the existing chain for a gold beaded chain matching the reference product</small>
       </label>
       <label>
-        Extra instructions <small>(appended to every prompt attempt)</small>
+        Extra instructions <small>(pendant-specific details — appended to every attempt)</small>
         <textarea id="extraPrompt" rows="4" spellcheck="false"
-          placeholder="e.g. The bail should connect to the chain link at the centre of the necklace. Match the warm side-lighting from the original photo. The pendant wings should be symmetrical."></textarea>
+          placeholder="Describe anything specific to THIS pendant, e.g. 'tiger-eye butterfly with a vertical diamond bar between the wings' or 'heart pendant, bail at the top point'. The core prompt is pendant-agnostic; put per-pendant notes here."></textarea>
       </label>
     </section>
 
@@ -74,16 +78,23 @@
     <h2>Result</h2>
     <div class="result-grid">
       <div>
-        <h3>Output image</h3>
+        <div class="carousel-head">
+          <button type="button" id="prevBtn" class="nav-btn">‹</button>
+          <span id="attemptLabel">Attempt 1 / 1</span>
+          <button type="button" id="nextBtn" class="nav-btn">›</button>
+        </div>
         <img id="resultImg" alt="Result">
-        <a id="downloadLink" download="pendant-swap-result.jpg">Download</a>
+        <label class="checkbox-label" style="margin-top:.5rem">
+          <input type="checkbox" id="showBox"> Show QA measurement box
+        </label>
+        <a id="downloadLink" download="pendant-swap-result.jpg">Download this attempt</a>
       </div>
       <div>
-        <h3>QA — final composited result</h3>
-        <pre id="finalQa"></pre>
-        <h3 style="margin-top:1rem">QA — AI attempts (pre-composite)</h3>
-        <pre id="qaReport"></pre>
-        <p id="attemptCount"></p>
+        <h3>This attempt</h3>
+        <div id="attemptBadge" class="badge"></div>
+        <pre id="attemptQa"></pre>
+        <h3 style="margin-top:1rem">All attempts</h3>
+        <div id="attemptList"></div>
       </div>
     </div>
   </div>

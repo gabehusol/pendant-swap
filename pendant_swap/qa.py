@@ -31,7 +31,8 @@ BBox = Tuple[int, int, int, int]  # x0, y0, x1, y1
 def measure_pendant(
     result_img: Image.Image,
     search_bbox: BBox,
-) -> Optional[BBox]:
+    return_mask: bool = False,
+):
     """Segment the pendant within search_bbox and return its tight bounding box.
 
     Uses a warm-and-dark colour mask to isolate the pendant against skin/chain.
@@ -40,9 +41,12 @@ def measure_pendant(
     Args:
         result_img: RGB result image.
         search_bbox: (x0, y0, x1, y1) in image coords — region to search.
+        return_mask: if True, also return a full-image binary mask (uint8 0/255)
+            of the detected pendant. Used by the size-lock post-process.
 
     Returns:
-        (x0, y0, x1, y1) tight bbox around the detected pendant, or None.
+        (x0, y0, x1, y1) tight bbox, or None. If return_mask, returns
+        (bbox, mask) where mask is None when bbox is None.
     """
     x0, y0, x1, y1 = search_bbox
     img = result_img.convert("RGB")
@@ -50,7 +54,7 @@ def measure_pendant(
 
     region = arr[y0:y1, x0:x1].astype(float)
     if region.size == 0:
-        return None
+        return (None, None) if return_mask else None
 
     r, g, b = region[:, :, 0], region[:, :, 1], region[:, :, 2]
     luma = (r + g + b) / 3.0
@@ -64,27 +68,53 @@ def measure_pendant(
 
     mask = (warm & dark_enough & bright_enough).astype(np.uint8) * 255
 
-    # Morphological cleanup: close gaps inside the pendant body.
-    # The bright diamond center bar separates the two wings into distinct blobs;
-    # a larger kernel is needed to bridge that gap in scaled-down generated images.
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (19, 19))
-    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=3)
+    rh, rw = mask.shape[:2]
 
-    # Find the largest connected component — that's the pendant, not stray pixels.
+    # Merge the two wings across the bright diamond centre bar with a horizontally
+    # elongated close, so the whole butterfly is ONE blob. A horizontal bridge
+    # avoids reaching up into the chain (which sits above, not beside, the pendant).
+    hk = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (max(9, round(rw * 0.10)), max(3, round(rh * 0.03))))
+    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, hk, iterations=1)
+
     n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(closed, connectivity=8)
     if n_labels < 2:
-        return None
-
-    # stats columns: LEFT, TOP, WIDTH, HEIGHT, AREA (label 0 is background)
+        return (None, None) if return_mask else None
     areas = stats[1:, cv2.CC_STAT_AREA]
     best_label = int(areas.argmax()) + 1
-    if areas[best_label - 1] < 50:   # ignore tiny specks
-        return None
+    if areas[best_label - 1] < 30:   # ignore tiny specks
+        return (None, None) if return_mask else None
+    blob = labels == best_label
 
-    best_mask = (labels == best_label).astype(np.uint8)
+    # Trim the thin chain/bail by ROW WIDTH. The chain and bail are narrow; the
+    # pendant wings are wide. Keep the contiguous band of rows whose horizontal
+    # extent is a healthy fraction of the widest row — that band is the pendant.
+    xs_any = blob.any(axis=1)
+    row_w = np.zeros(rh)
+    rows_with = np.where(xs_any)[0]
+    for y in rows_with:
+        xs_row = np.where(blob[y])[0]
+        row_w[y] = xs_row[-1] - xs_row[0] + 1
+    max_w = row_w.max()
+    if max_w <= 0:
+        return (None, None) if return_mask else None
+    yc = int(row_w.argmax())                 # widest row = pendant centre band
+    # Asymmetric thresholds: going UP, be strict to cut the narrow chain + bail;
+    # going DOWN, be lenient so the tapering lower wing tips are kept.
+    up_wide = row_w >= 0.40 * max_w
+    down_wide = row_w >= 0.15 * max_w
+    ry0, ry1 = yc, yc
+    while ry0 > 0 and up_wide[ry0 - 1]:
+        ry0 -= 1
+    while ry1 < rh - 1 and down_wide[ry1 + 1]:
+        ry1 += 1
+
+    # Restrict the blob to the pendant row band; that's our clean pendant mask.
+    best_mask = np.zeros_like(blob, dtype=np.uint8)
+    best_mask[ry0:ry1 + 1] = blob[ry0:ry1 + 1]
     ys, xs = np.where(best_mask > 0)
     if len(ys) == 0:
-        return None
+        return (None, None) if return_mask else None
 
     # Convert back to full-image coords
     bx0 = int(xs.min()) + x0
@@ -93,9 +123,56 @@ def measure_pendant(
     by1 = int(ys.max()) + y0
 
     if bx1 <= bx0 or by1 <= by0:
-        return None
+        return (None, None) if return_mask else None
 
-    return (bx0, by0, bx1, by1)
+    bbox = (bx0, by0, bx1, by1)
+    if return_mask:
+        full_mask = np.zeros(arr.shape[:2], dtype=np.uint8)
+        full_mask[y0:y1, x0:x1] = best_mask * 255
+        return bbox, full_mask
+    return bbox
+
+
+def report_from_bbox(
+    bbox: BBox,
+    *,
+    target_mm: float,
+    ppm: float,
+    aspect_target: float = 1.05,
+    aspect_tol: float = 0.30,
+    size_tol: float = 0.20,
+) -> QAReport:
+    """Build a QAReport from a KNOWN pendant bbox, without segmentation.
+
+    Used after size-lock: we placed the pendant ourselves, so we know its exact
+    extent. Re-segmenting an inpainted image is noisy (it can catch inpaint
+    smudge or nearby clothing), so we measure the bbox we actually produced.
+    """
+    bx0, by0, bx1, by1 = bbox
+    width_px = max(bx1 - bx0, 1)
+    height_px = max(by1 - by0, 1)
+
+    height_mm = height_px / ppm
+    height_check = CheckResult(
+        value=round(height_mm, 3), target=target_mm,
+        passed=abs(height_mm - target_mm) / target_mm <= size_tol,
+        label="Pendant height (mm)",
+    )
+    aspect = width_px / height_px
+    aspect_check = CheckResult(
+        value=round(aspect, 3), target=aspect_target,
+        passed=abs(aspect - aspect_target) <= aspect_tol,
+        label="Aspect ratio (w/h, target wider-than-tall)",
+    )
+    checks = [height_check, aspect_check]
+    overall = all(c.passed for c in checks)
+    lines = [str(c) for c in checks]
+    lines.append("Overall: %s (%d/%d checks)" % (
+        "PASSED" if overall else "FAILED", sum(c.passed for c in checks), len(checks)))
+    return QAReport(
+        pendant_height_mm=height_check, aspect_ratio=aspect_check,
+        chain_color=None, passed=overall, summary="\n".join(lines),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -108,9 +185,9 @@ def qa_report(
     target_mm: float,
     ppm: float,
     search_bbox: BBox,
-    aspect_target: float = 1.3,
-    aspect_tol: float = 0.35,
-    size_tol: float = 0.10,
+    aspect_target: float = 1.05,
+    aspect_tol: float = 0.30,
+    size_tol: float = 0.20,
     chain_region: Optional[BBox] = None,
     annotate: bool = False,
 ) -> QAReport:

@@ -10,10 +10,60 @@ const statusEl   = document.getElementById("status");
 const resultsEl  = document.getElementById("results");
 const resultImg  = document.getElementById("resultImg");
 const downloadLink = document.getElementById("downloadLink");
-const qaReport   = document.getElementById("qaReport");
-const attemptCount = document.getElementById("attemptCount");
 const keySection = document.getElementById("keySection");
 const retriesLabel = document.getElementById("retriesLabel");
+
+// Carousel state
+let attempts = [];
+let current = 0;
+const attemptLabel = document.getElementById("attemptLabel");
+const attemptBadge = document.getElementById("attemptBadge");
+const attemptQa    = document.getElementById("attemptQa");
+const attemptList  = document.getElementById("attemptList");
+const showBox      = document.getElementById("showBox");
+
+document.getElementById("prevBtn").addEventListener("click", () => showAttempt(current - 1));
+document.getElementById("nextBtn").addEventListener("click", () => showAttempt(current + 1));
+showBox.addEventListener("change", () => renderCurrentImage());
+
+function showAttempt(i) {
+  if (!attempts.length) return;
+  current = (i + attempts.length) % attempts.length;
+  renderCurrentImage();
+  const a = attempts[current];
+  attemptLabel.textContent = "Attempt " + (current + 1) + " / " + attempts.length;
+  attemptBadge.textContent = (a.passed ? "PASS" : "FAIL")
+    + "  ·  " + a.height_mm + "mm  ·  aspect " + a.aspect + "  ·  score " + a.score;
+  attemptBadge.className = "badge " + (a.passed ? "pass" : "fail");
+  attemptQa.textContent = a.summary;
+}
+
+function renderCurrentImage() {
+  const a = attempts[current];
+  const useBox = showBox.checked && a.annotated;
+  const src = "data:image/jpeg;base64," + (useBox ? a.annotated : a.image);
+  resultImg.src = src;
+  downloadLink.href = "data:image/jpeg;base64," + a.image;
+  downloadLink.download = "pendant-attempt-" + (current + 1) + ".jpg";
+}
+
+function renderAttemptList() {
+  attemptList.innerHTML = "";
+  attempts.forEach((a, i) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "attempt-row " + (a.passed ? "pass" : "fail")
+      + (i === current ? " active" : "");
+    if (a.isFinal) {
+      row.textContent = "★ FINAL (size-locked)  " + (a.passed ? "✓" : "✗");
+    } else {
+      row.textContent = "#" + (i) + "  " + (a.passed ? "✓" : "✗")
+        + "  " + a.height_mm + "mm  asp " + a.aspect + "  (score " + a.score + ")";
+    }
+    row.addEventListener("click", () => { showAttempt(i); renderAttemptList(); });
+    attemptList.appendChild(row);
+  });
+}
 
 // Show/hide key field and retries based on mode
 document.querySelectorAll("input[name='mode']").forEach(radio => {
@@ -64,6 +114,7 @@ async function runSwap() {
     fd.append("model_id", document.getElementById("modelId").value);
     fd.append("extra_prompt", document.getElementById("extraPrompt").value.trim());
     fd.append("composite_finish", document.getElementById("compositeFinish").checked ? "true" : "false");
+    fd.append("replace_chain", document.getElementById("replaceChain").checked ? "true" : "false");
   }
 
   const headers = {};
@@ -89,34 +140,40 @@ async function runSwap() {
       return;
     }
 
-    // Render result image
-    const imgSrc = "data:image/jpeg;base64," + data.result_image;
-    resultImg.src = imgSrc;
-    downloadLink.href = imgSrc;
-
-    // Final composited QA (what actually matters)
-    const finalQaEl = document.getElementById("finalQa");
-    if (data.final_qa) {
-      finalQaEl.textContent = data.final_qa
-        + (data.gen_image_size ? "\n\n(Gemini output: " + data.gen_image_size[0] + "×" + data.gen_image_size[1] + "px)" : "");
+    if (data.attempts && data.attempts.length > 0) {
+      // Generate mode. Headline = the size-locked FINAL result; then raw attempts.
+      attempts = [];
+      if (data.final_qa) {
+        attempts.push({
+          image: data.result_image,
+          annotated: null,
+          summary: "FINAL (size-locked)\n\n" + data.final_qa,
+          passed: data.final_qa.indexOf("PASSED") !== -1,
+          height_mm: "final", aspect: "—", score: "—",
+          isFinal: true,
+        });
+      }
+      data.attempts.forEach(a => attempts.push(a));
+      current = 0;
+      showAttempt(0);
+      renderAttemptList();
     } else {
-      finalQaEl.textContent = data.mode === "composite" ? "(composite mode)" : "(composite finish off)";
+      // Composite mode: single image, no attempts
+      attempts = [{
+        image: data.result_image,
+        annotated: null,
+        summary: "(composite mode — no QA)",
+        passed: true, height_mm: "-", aspect: "-", score: "-",
+      }];
+      current = 0;
+      showAttempt(0);
+      renderAttemptList();
     }
 
-    // AI attempt QA reports
-    if (data.qa_reports && data.qa_reports.length > 0) {
-      qaReport.textContent = data.qa_reports.join("\n\n---\n\n");
-      attemptCount.textContent = "Attempts: " + data.qa_reports.length
-        + (data.chosen_attempt != null
-           ? "  |  Best: attempt " + (data.chosen_attempt + 1)
-           : "");
-    } else {
-      qaReport.textContent = "(no QA report — composite mode)";
-      attemptCount.textContent = "";
-    }
-
+    const sizeNote = data.gen_image_size
+      ? "  (Gemini output: " + data.gen_image_size[0] + "×" + data.gen_image_size[1] + "px)" : "";
     resultsEl.classList.remove("hidden");
-    showStatus("Done.");
+    showStatus("Done." + sizeNote);
   } catch (err) {
     showStatus("Network error: " + err.message, "error");
   } finally {
@@ -129,3 +186,51 @@ function showStatus(msg, type) {
   statusEl.className = type === "error" ? "error" : "";
   statusEl.classList.remove("hidden");
 }
+
+// ---------------------------------------------------------------------------
+// Settings persistence (localStorage). Everything EXCEPT the API key and the
+// file pickers — the key is a secret (never stored) and browsers forbid
+// pre-filling file inputs.
+// ---------------------------------------------------------------------------
+const STORE_KEY = "pendant-swap-settings";
+
+// id -> "value" | "checked"; plus the mode radio handled separately.
+// NOTE: compositeFinish (Force exact size) is intentionally NOT persisted — it's
+// an occasional override that should always default OFF, never get stuck on.
+const PERSIST = {
+  targetMm: "value", refPx: "value", refMm: "value",
+  hangX: "value", hangY: "value", rotate: "value", topCrop: "value",
+  maxRetries: "value", modelId: "value", extraPrompt: "value",
+  replaceChain: "checked",
+};
+
+function saveSettings() {
+  const data = {};
+  for (const [id, prop] of Object.entries(PERSIST)) {
+    const el = document.getElementById(id);
+    if (el) data[id] = el[prop];
+  }
+  const mode = document.querySelector("input[name='mode']:checked");
+  if (mode) data.mode = mode.value;
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+function restoreSettings() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { return; }
+  if (!data) return;
+  for (const [id, prop] of Object.entries(PERSIST)) {
+    if (data[id] == null) continue;
+    const el = document.getElementById(id);
+    if (el) el[prop] = data[id];
+  }
+  if (data.mode) {
+    const radio = document.querySelector(`input[name='mode'][value='${data.mode}']`);
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change")); }
+  }
+}
+
+// Save on any change within the form; restore once on load.
+form.addEventListener("input", saveSettings);
+form.addEventListener("change", saveSettings);
+restoreSettings();
